@@ -1,0 +1,18 @@
+# Base de datos PostgreSQL SOLO para desarrollo local.
+# En producción se usa Neon (gratis); estas credenciales no salen de tu PC.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: aswow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aswow
+      POSTGRES_PASSWORD: aswow
+      POSTGRES_DB: aswow
+    ports:
+      - "5433:5432" # puerto_en_tu_PC:puerto_dentro_del_contenedor
+    volumes:
+      - aswow-db-data:/var/lib/postgresql/data # los datos sobreviven al apagar el contenedor
+
+volumes:
+  aswow-db-data:

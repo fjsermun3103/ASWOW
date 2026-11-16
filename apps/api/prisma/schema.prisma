@@ -1,0 +1,43 @@
+// Modelo de datos de ASWOW. `npm run migrate -w @aswow/api` convierte esto en tablas de PostgreSQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String // huella argon2, nunca la contraseña
+  createdAt    DateTime   @default(now())
+  sessions     Session[]
+  creations    Creation[]
+}
+
+model Session {
+  id        String   @id // SHA-256 del token que viaja en la cookie
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Creation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  data      Json // configuración completa (notas, duraciones, sintetizador...), validada con Zod
+  isPublic  Boolean  @default(false)
+  shareSlug String?  @unique // código del enlace /s/:slug
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}

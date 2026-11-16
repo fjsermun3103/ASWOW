@@ -1,0 +1,25 @@
+{
+  "name": "aswow",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c magenta,cyan \"npm run dev -w @aswow/api\" \"npm run dev -w @aswow/web\"",
+    "dev:web": "npm run dev -w @aswow/web",
+    "dev:api": "npm run dev -w @aswow/api",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run migrate -w @aswow/api",
+    "test": "vitest run",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build -w @aswow/web && npm run build -w @aswow/api"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.7",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
+  }
+}

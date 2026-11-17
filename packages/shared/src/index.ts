@@ -3,3 +3,5 @@
 // En la fase 2 se añadirán: notas, escalas, generador aleatorio y el esquema de "creación".
 
 export const APP_NAME = 'ASWOW';
+
+export * from './music/notes';

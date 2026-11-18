@@ -81,22 +81,18 @@ export function nameToMidi(name: string): number {
 }
 
 /**
- * MIDI → frecuencia en hercios (Hz).
+ **midiToFreq() Transforma la nota en MIDI a frecuencia tomando una afinación de referencia
+ **             (por defecto A4=440)
  *
- * Idea: cada octava (12 semitonos) DUPLICA la frecuencia, y los 12 semitonos son iguales,
- * así que cada semitono multiplica la frecuencia por 2^(1/12) ≈ 1.0595.
- * Tomando como referencia A4 (MIDI 69) = 440 Hz:
- *
- *     frecuencia = a4 · 2^((midi − 69) / 12)
- *
- * Ejemplos: 69 → 440, 81 → 880 (una octava arriba), 57 → 220, 60 → ≈261.63.
- *
- * @param midi  número de nota MIDI (puede tener decimales, p. ej. para vibrato)
- * @param a4    frecuencia de afinación del La4 (por defecto 440 Hz)
- */
+ * Inputs
+ * midi(int)  -> Nota en MIDI Ej: A4 -> 69, C3 -> 48
+ * a4(int)    -> Frecuencia, por defecto 440 (A4)
+ * 
+ * Outputs:
+ * freq(float)  -> Frecuencia resultante de la nota MIDI seleccionada
+*/
+
 export function midiToFreq(midi: number, a4: number = A4_FREQ): number {
-  // TODO(tú): implementa la fórmula de arriba (una línea).
-  // Pistas: en JavaScript la potencia se escribe `base ** exponente` (o Math.pow(base, exponente)),
-  // y tienes A4_MIDI ya definido arriba para no escribir 69 "a pelo".
-  throw new Error(`midiToFreq por implementar (midi=${midi}, a4=${a4})`);
-}
+  const freq = a4 * 2**((midi - A4_MIDI) / 12);
+  return freq;
+};

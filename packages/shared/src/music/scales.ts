@@ -1,3 +1,4 @@
+// TODO RE-Documentar archivo entero y revisar todas las funciones
 // Escalas musicales como listas de intervalos (en semitonos desde la tónica)
 // y su conversión a "máscara": 12 interruptores, uno por clase de nota (0 = C … 11 = B).
 

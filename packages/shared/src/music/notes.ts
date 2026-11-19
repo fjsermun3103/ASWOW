@@ -20,7 +20,7 @@ export const A4_FREQ = 440;
  * Nota MIDI (por ejemplo A4=69)
  * 
  * Output -> pitchNote(INT)
- * La nota equivalente independientemente de la escala
+ * La nota equivalente independientemente de la octava
 */
 export function pitchClass(midi: number): number {
   const pitchNote = ((midi % 12) + 12) % 12;
@@ -95,4 +95,4 @@ export function nameToMidi(name: string): number {
 export function midiToFreq(midi: number, a4: number = A4_FREQ): number {
   const freq = a4 * 2**((midi - A4_MIDI) / 12);
   return freq;
-};
+}

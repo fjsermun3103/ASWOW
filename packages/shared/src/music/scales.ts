@@ -1,16 +1,14 @@
-// TODO RE-Documentar archivo entero y revisar todas las funciones
-// Escalas musicales como listas de intervalos (en semitonos desde la tónica)
-// y su conversión a "máscara": 12 interruptores, uno por clase de nota (0 = C … 11 = B).
+import { pitchClass } from "./notes";
 
 /** 12 booleanos: posición i = ¿está permitida la clase de nota i? (0 = C/Do … 11 = B/Si) */
 export type NoteMask = boolean[];
-
+/** De qué se compone cada escala*/
 export interface ScaleDef {
   /** Identificador interno, estable (se guarda en las creaciones). */
   id: string;
-  /** Nombre para mostrar en la interfaz. */
+  /** Nombre en español para mostrar en la interfaz. */
   name: string;
-  /** Semitonos desde la tónica, ordenados, empezando en 0 y menores que 12. */
+  /** Semitonos [0 - 11] que utiliza cada escala según los intervalos que posee. */
   intervals: readonly number[];
 }
 
@@ -34,10 +32,24 @@ export const SCALES = [
   { id: 'hirajoshi', name: 'Hirajōshi (japonesa)', intervals: [0, 2, 3, 7, 8] },
 ] as const satisfies readonly ScaleDef[];
 
-/** Unión de todos los ids válidos: 'major' | 'naturalMinor' | … (calculada a partir de SCALES). */
+/** Unión de todos los ids válidos: 'major' | 'naturalMinor' | … */
 export type ScaleId = (typeof SCALES)[number]['id'];
 
-/** Busca una escala por id. Lanza un error si no existe (p. ej. datos guardados corruptos). */
+/** Dice la tónica (root) y el tipo de escala (scaleId) */
+export interface ScaleMatch {
+  root: number;
+  scaleId: ScaleId;
+}
+
+/**
+ **getScale() Busca la escala por el id recorriendo SCALES[]
+ * Input -> id(string)
+ * Id de la escala major, naturalMinor...
+ * 
+ * Outputs  -> scale(ScaleDef) | Error('Escala desconocida')
+ * scale    -> Un objeto escala concreto del array SCALES que coincida con el id indicado.
+ * Error    -> Si se ha introducido mal el nombre de la escala o no existe.
+*/
 export function getScale(id: string): ScaleDef {
   const scale = SCALES.find((s) => s.id === id);
   if (!scale) {
@@ -46,36 +58,57 @@ export function getScale(id: string): ScaleDef {
   return scale;
 }
 
-/** Máscara con las 12 notas apagadas (o encendidas si `value = true`). */
+/**
+ **emptyMask()  Máscara con las 12 notas apagadas por defecto (o encendidas si `value = true`)
+ * Input    -> value(boolean)
+ * Estado de las 12 notas (encendida = true || apagada = false)
+ * 
+ * Output   -> Array del tipo NoteMask con los valores apagado o encendido. 
+*/
+
 export function emptyMask(value = false): NoteMask {
   return Array.from({ length: 12 }, () => value);
 }
 
 /**
- * Notas de una escala a partir de su tónica, como máscara de 12 interruptores.
- * Ejemplo: scaleMask(2, 'major') → Re mayor → enciende D, E, F#, G, A, B, C#.
- *
- * @param root     clase de nota de la tónica (0 = C … 11 = B)
- * @param scaleId  id de la escala (ver SCALES)
- */
+ **scaleMask()  Notas de una escala a partir de su tónica, como máscara de 12 interruptores.
+ * Inputs   -> root(int), scaleId(ScaleId | string)
+ * root     -> Tónica de la escala (del 0-11).
+ * scaleId  -> Id de la escala (en SCALES)       
+ * 
+ * Output   -> Máscara con las posiciones de la escala seleccionada encendidas. 
+*/
 export function scaleMask(root: number, scaleId: ScaleId | string): NoteMask {
   const mask = emptyMask();
   for (const interval of getScale(scaleId).intervals) {
-    mask[(((root + interval) % 12) + 12) % 12] = true;
+    mask[pitchClass(root + interval)] = true;
   }
   return mask;
 }
 
-/** Máscara → lista ordenada de clases de nota encendidas. [true,false,true,…] → [0, 2, …] */
+/**
+ **maskToPitchClasses() Transforma las notas true en su clase de nota (0-11) según su índice
+ * Input    -> mask(NoteMask)
+ * mask     -> Recibe la máscara seleccionada (true, false, false, ...)    
+ * 
+ * Output   -> result(number[])
+ * result   -> Máscara de notas de la escala pasadas a número (clase de nota) (0, 2, ...)
+*/
 export function maskToPitchClasses(mask: NoteMask): number[] {
   const result: number[] = [];
-  mask.forEach((on, pitchClass) => {
-    if (on) result.push(pitchClass);
+  mask.forEach((isOn, index) => {
+    if (isOn) result.push(index);
   });
   return result;
 }
 
-/** ¿Dos máscaras tienen exactamente las mismas notas encendidas? */
+/**
+ **masksEqual() Compara si dos máscaras tienen exactamente las mismas notas encendidas
+ * Input    -> a(NoteMask), b(NoteMask)
+ * a, b     -> Dos máscaras de escalas. 
+ * 
+ * Output   -> boolean(la máscara es igual o no)
+*/
 export function masksEqual(a: NoteMask, b: NoteMask): boolean {
   for (let i = 0; i < 12; i++) {
     if (Boolean(a[i]) !== Boolean(b[i])) return false;
@@ -83,17 +116,18 @@ export function masksEqual(a: NoteMask, b: NoteMask): boolean {
   return true;
 }
 
-export interface ScaleMatch {
-  root: number;
-  scaleId: ScaleId;
-}
+
 
 /**
- * Qué escalas (tónica + tipo) tienen exactamente las notas encendidas en la máscara.
- * Devuelve una LISTA porque varias escalas comparten notas: Do mayor y La menor natural
- * son las mismas 7 notas (lo mismo ocurre con los modos griegos).
- * Lista vacía = combinación personalizada.
- */
+ **detectScale() Dice qué escalas coinciden con las notas encendidas
+ * Input    -> mask(NoteMask)
+ * mask     -> Recibe la máscara seleccionada (true, false, false, ...)    
+ * 
+ * Output   -> matches(ScaleMatch[])
+ * matches  -> Devuelve la tónica y el tipo de escala (scaleId) que hace match con la máscara 
+ *             según las notas que tenga encendidas.
+ *             Si la combinación es personalizada, la lista estará vacía
+*/
 export function detectScale(mask: NoteMask): ScaleMatch[] {
   const matches: ScaleMatch[] = [];
   for (const scale of SCALES) {

@@ -6,3 +6,4 @@ export const APP_NAME = 'ASWOW';
 
 export * from './music/notes';
 export * from './music/scales';
+export * from './music/random';

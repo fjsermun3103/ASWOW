@@ -1,4 +1,6 @@
-import { SpyModule } from "vitest/internal/browser";
+// Aleatoriedad reproducible: misma semilla → misma secuencia de números → misma melodía.
+// ⚠️ NO es criptográficamente segura: no usar para contraseñas, tokens ni nada de seguridad
+//    (para eso, el módulo `crypto` de Node).
 
 /**
  * Generador pseudoaleatorio mulberry32.
@@ -36,12 +38,14 @@ export interface Rng {
 }
 
 /**
- **  createRng() Crea un generador de números aleatorios a partir de una semilla
+ **createRng() Crea un generador de números aleatorios a partir de una semilla
  * Input    -> seed(int)
- * seed     -> Número a partir del cual empezará el Rng   
- * 
+ * seed     -> Número a partir del cual empezará el Rng.
+ *             Misma semilla → misma secuencia de números.
+ *
  * Output   -> Rng
- * Rng      -> Un objeto de tipo Rng con el seed generado por el método mulberry32
+ * Rng      -> Objeto con next, float, int y chance. Todos sacan sus números
+ *             de un mismo mulberry32 iniciado con `seed`.
 */
 export function createRng(seed: number): Rng {
   const next = mulberry32(seed);
@@ -54,35 +58,60 @@ export function createRng(seed: number): Rng {
 }
 
 /**
- * Semilla nueva al azar (entero de 32 bits sin signo) para el botón "Randomizar".
- * Aquí SÍ usamos Math.random(): queremos que cada clic sea distinto.
- */
+ **randomSeed() Crea una semilla nueva al azar (para el botón "Randomizar")
+ *               Usa Math.random() a propósito: cada llamada da un valor distinto
+ *               y NO es reproducible (justo lo que queremos al randomizar).
+ *
+ * Output   -> seed(int)
+ * seed     -> Entero sin signo de 32 bits (de 0 a 4.294.967.295)
+*/
 export function randomSeed(): number {
   return Math.floor(Math.random() * 4294967296) >>> 0;
 }
 
 /**
- * Ruleta ponderada: elige un ÍNDICE de `weights` con probabilidad proporcional a su peso.
- * Ejemplo: weights = [1, 3] → índice 0 sale ~25 % de las veces, índice 1 ~75 %.
- * Un peso 0 no debe salir nunca.
+ **weightedPick() Ruleta ponderada: elige un ÍNDICE de `weights` con probabilidad proporcional
+ **               a su peso. Un peso 0 no sale nunca.
  *
- * Algoritmo de la ruleta:
- *   1. total = suma de todos los pesos.
- *   2. r = número al azar en [0, total)   →  rng.next() * total
- *   3. Recorrer los pesos acumulando: el primer índice en el que (acumulado > r) es el elegido.
- *      Visualmente: los pesos son tramos de una recta de 0 a total; r cae en uno de ellos.
+ * Cómo funciona (regla de colores): cada peso es un tramo de una regla que mide `total`.
+ * Se clava un alfiler al azar (r) y se recorre la regla tramo a tramo: el primer tramo
+ * cuyo final queda por encima del alfiler es el elegido. Ej: [1, 3] → 0 ~25 %, 1 ~75 %.
  *
- *      pesos [1, 3]:  |-0-|-----1-----|
- *                     0   1           4      r = 2.7 → cae en el tramo del índice 1
+ * Inputs   -> weights(number[]), rng(Rng)
+ * weights  -> Pesos >= 0, uno por opción
+ * rng      -> Generador con semilla (para que el resultado sea reproducible)
  *
- * @param weights  pesos (>= 0), uno por opción
- * @param rng      generador con semilla (para que el resultado sea reproducible)
- * @returns        índice elegido
- */
+ * Output   -> Int | Error
+ * Int      -> Índice elegido.
+ *             Si todos los pesos son 0, todas las opciones valen lo mismo (al azar).
+ * Error    -> Si la lista de pesos está vacía (no hay ninguna opción).
+*/
 export function weightedPick(weights: readonly number[], rng: Rng): number {
-  // TODO(tú): implementa la ruleta (unas 6-8 líneas).
-  // Decisión de diseño: ¿qué hacer si total <= 0 (todos los pesos son 0 o la lista está vacía)?
   const total = weights.reduce((suma, w) => suma + w, 0);
-  rng.next() * total;
+  if(total <= 0) {
+    // Sin opciones no hay nada que elegir: es un error de programación.
+    if (weights.length === 0) {
+      throw new Error('weightedPick: la lista de pesos está vacía');
+    }
+    // Todos los pesos son 0 → todas las opciones valen lo mismo.
+    return rng.int(0, weights.length - 1);
+  }
+
+  const r = rng.next() * total;
+  let finDelTramo = 0;
+
+  for (let i = 0; i < weights.length; i++) {
+    finDelTramo += weights[i];
+    if (finDelTramo > r) {
+      return i;
+    }
+  }
+
+  // Red de seguridad: por redondeo de decimales el bucle podría no devolver nada;
+  // en ese caso elegimos el último tramo que mida algo.
+  for (let i = weights.length - 1; i >= 0; i--) {
+    if (weights[i] > 0) return i;
+  }
+
   return 0;
 }

@@ -111,6 +111,21 @@ describe('weightedPick (ruleta ponderada)', () => {
     }
   });
 
-  // Decisión pendiente (tuya): ¿qué debe pasar si todos los pesos son 0 o la lista está vacía?
-  it.todo('caso límite: todos los pesos son 0 / lista vacía');
+  // Decisión de diseño (opción C): si todos los pesos son 0, todas las opciones valen lo mismo.
+  it('si todos los pesos son 0, elige cualquier índice con la misma probabilidad (~1/3 cada uno)', () => {
+    const rng = createRng(6);
+    const counts = [0, 0, 0];
+    const draws = 9_000;
+    for (let i = 0; i < draws; i++) {
+      counts[weightedPick([0, 0, 0], rng)]++;
+    }
+    for (const count of counts) {
+      expect(count / draws).toBeCloseTo(1 / 3, 1);
+    }
+  });
+
+  // Lista vacía: no hay ninguna opción que elegir → error de programación.
+  it('lanza un error si la lista de pesos está vacía', () => {
+    expect(() => weightedPick([], createRng(8))).toThrow();
+  });
 });

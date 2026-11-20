@@ -1,5 +1,4 @@
-// Aleatoriedad reproducible: misma semilla → misma secuencia de números → misma melodía.
-// NO es criptográficamente segura (no usar para contraseñas ni tokens).
+import { SpyModule } from "vitest/internal/browser";
 
 /**
  * Generador pseudoaleatorio mulberry32.
@@ -36,7 +35,14 @@ export interface Rng {
   chance(p: number): boolean;
 }
 
-/** Crea un Rng reproducible a partir de una semilla. */
+/**
+ **  createRng() Crea un generador de números aleatorios a partir de una semilla
+ * Input    -> seed(int)
+ * seed     -> Número a partir del cual empezará el Rng   
+ * 
+ * Output   -> Rng
+ * Rng      -> Un objeto de tipo Rng con el seed generado por el método mulberry32
+*/
 export function createRng(seed: number): Rng {
   const next = mulberry32(seed);
   return {
@@ -76,5 +82,7 @@ export function randomSeed(): number {
 export function weightedPick(weights: readonly number[], rng: Rng): number {
   // TODO(tú): implementa la ruleta (unas 6-8 líneas).
   // Decisión de diseño: ¿qué hacer si total <= 0 (todos los pesos son 0 o la lista está vacía)?
-  throw new Error(`weightedPick por implementar (${weights.length} pesos, rng=${typeof rng})`);
+  const total = weights.reduce((suma, w) => suma + w, 0);
+  rng.next() * total;
+  return 0;
 }
